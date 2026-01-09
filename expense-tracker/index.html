@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Expense Tracker</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f6f7fb;
+      --card:#ffffff;
+      --muted:#6b7280;
+      --accent:#6366f1;
+      --success:#10b981;
+      --danger:#ef4444;
+      font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+      color-scheme: light;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#f6f7fb, #ffffff);font-family:inherit;color:#0f172a;}
+    .container{max-width:1100px;margin:36px auto;padding:20px}
+    header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+    h1{font-size:1.25rem;margin:0}
+    p.lead{margin:4px 0 0;color:var(--muted);font-size:0.95rem}
+
+    .app{display:grid;grid-template-columns:1fr 420px;gap:20px}
+    @media (max-width:900px){.app{grid-template-columns:1fr;}}
+
+    .card{background:var(--card);border-radius:12px;box-shadow:0 6px 20px rgba(15,23,42,0.06);padding:18px}
+
+    form .row{display:grid;grid-template-columns:1fr 120px;gap:12px;margin-bottom:12px}
+    @media (max-width:480px){form .row{grid-template-columns:1fr}}
+
+    label{display:block;font-size:0.85rem;margin-bottom:6px;color:#0f172a}
+    input[type=text],input[type=number],select{width:100%;padding:10px;border-radius:8px;border:1px solid #e6e9ef;background:transparent;font-size:0.95rem}
+    .controls{display:flex;gap:10px;align-items:center}
+    button.btn{background:var(--accent);color:white;border:0;padding:10px 14px;border-radius:8px;font-weight:600;cursor:pointer}
+    button.btn.secondary{background:transparent;color:var(--accent);border:1px solid rgba(99,102,241,0.12)}
+
+    .list{margin-top:12px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px;text-align:left;font-size:0.95rem;border-bottom:1px solid #f1f3f7}
+    th{font-weight:600;color:var(--muted);font-size:0.8rem}
+    .amount{font-weight:700}
+    .muted{color:var(--muted);font-size:0.85rem}
+
+    .right-col{display:flex;flex-direction:column;gap:16px}
+    .summary{display:flex;justify-content:space-between;align-items:center}
+    .total{font-size:1.1rem;font-weight:700}
+
+    .empty{padding:24px;text-align:center;color:var(--muted)}
+
+    .small{font-size:0.85rem;color:var(--muted)}
+
+    .actions{display:flex;gap:8px}
+    .chip{background:#f3f4f6;padding:6px 8px;border-radius:999px;font-size:0.8rem;color:#111827}
+
+    .footer{margin-top:18px;font-size:0.85rem;color:var(--muted)}
+
+    .delete{background:transparent;border:0;color:var(--danger);cursor:pointer;font-weight:700}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Expense Tracker</h1>
+        <p class="lead">Quickly add expenses and visualize spending by category.</p>
+      </div>
+      <div class="small">Persistent via <span class="chip">localStorage</span></div>
+    </header>
+
+    <main class="app">
+      <section class="card">
+        <form id="expense-form">
+          <div class="row">
+            <div>
+              <label for="description">Description</label>
+              <input id="description" name="description" type="text" placeholder="e.g. Lunch at cafe" required />
+            </div>
+            <div>
+              <label for="amount">Amount</label>
+              <input id="amount" name="amount" type="number" step="0.01" placeholder="0.00" required />
+            </div>
+          </div>
+
+          <div style="display:flex;gap:12px;align-items:end;margin-bottom:12px">
+            <div style="flex:1">
+              <label for="category">Category</label>
+              <select id="category" name="category">
+                <option value="Food">Food</option>
+                <option value="Transport">Transport</option>
+                <option value="Entertainment">Entertainment</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="controls">
+              <button type="submit" class="btn">Add</button>
+              <button type="button" id="clear-btn" class="btn secondary">Clear all</button>
+            </div>
+          </div>
+        </form>
+
+        <div class="list">
+          <table aria-label="Recent expenses">
+            <thead>
+              <tr><th>Description</th><th>Category</th><th>Amount</th><th></th></tr>
+            </thead>
+            <tbody id="expenses-table">
+              <!-- rows inserted here -->
+            </tbody>
+          </table>
+          <div id="empty" class="empty" style="display:none">No expenses yet — add one above.</div>
+        </div>
+
+        <div class="footer">Tip: Reload the page to verify data persists.</div>
+      </section>
+
+      <aside class="right-col">
+        <div class="card">
+          <div class="summary">
+            <div>
+              <div class="small">Total spent</div>
+              <div class="total" id="total-amount">$0.00</div>
+            </div>
+            <canvas id="expensesChart" width="300" height="200" aria-label="Spending by category"></canvas>
+          </div>
+          <div style="margin-top:12px" class="small">Chart updates automatically when you add or remove expenses.</div>
+        </div>
+
+        <div class="card">
+          <div class="small" style="margin-bottom:8px">Recent categories</div>
+          <div id="category-list" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    (function(){
+      const STORAGE_KEY = 'expense-tracker:expenses:v1';
+      const form = document.getElementById('expense-form');
+      const descEl = document.getElementById('description');
+      const amountEl = document.getElementById('amount');
+      const categoryEl = document.getElementById('category');
+      const tableBody = document.getElementById('expenses-table');
+      const emptyEl = document.getElementById('empty');
+      const totalEl = document.getElementById('total-amount');
+      const clearBtn = document.getElementById('clear-btn');
+      const categoryListEl = document.getElementById('category-list');
+      const ctx = document.getElementById('expensesChart').getContext('2d');
+
+      let expenses = [];
+      let chart = null;
+
+      function load(){
+        try{
+          const raw = localStorage.getItem(STORAGE_KEY);
+          expenses = raw ? JSON.parse(raw) : [];
+        }catch(e){
+          console.error('Failed to parse localStorage', e);
+          expenses = [];
+        }
+      }
+
+      function save(){
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+      }
+
+      function formatCurrency(val){
+        return new Intl.NumberFormat(undefined,{style:'currency',currency:'USD',maximumFractionDigits:2}).format(val);
+      }
+
+      function updateList(){
+        tableBody.innerHTML = '';
+        if(expenses.length === 0){
+          emptyEl.style.display = 'block';
+        }else{
+          emptyEl.style.display = 'none';
+        }
+
+        const recent = expenses.slice().reverse();
+        for(const item of recent.slice(0,50)){
+          const tr = document.createElement('tr');
+          const descTd = document.createElement('td'); descTd.textContent = item.description;
+          const catTd = document.createElement('td'); catTd.textContent = item.category; catTd.className='muted';
+          const amtTd = document.createElement('td'); amtTd.textContent = formatCurrency(item.amount); amtTd.className='amount';
+          const actTd = document.createElement('td');
+          const delBtn = document.createElement('button'); delBtn.textContent='Delete'; delBtn.className='delete';
+          delBtn.onclick = ()=>{ removeExpense(item.id); };
+          actTd.appendChild(delBtn);
+
+          tr.appendChild(descTd); tr.appendChild(catTd); tr.appendChild(amtTd); tr.appendChild(actTd);
+          tableBody.appendChild(tr);
+        }
+
+        const total = expenses.reduce((s,e)=>s+Number(e.amount),0);
+        totalEl.textContent = formatCurrency(total);
+
+        // categories chips
+        const cats = Array.from(new Set(expenses.map(e=>e.category))).slice(0,8);
+        categoryListEl.innerHTML = '';
+        if(cats.length===0){ categoryListEl.textContent = '—'; }
+        else{ cats.forEach(c=>{ const span=document.createElement('div'); span.className='chip'; span.textContent=c; categoryListEl.appendChild(span); }) }
+      }
+
+      function updateChart(){
+        const sums = expenses.reduce((acc,e)=>{ acc[e.category]=(acc[e.category]||0)+Number(e.amount); return acc; },{});
+        const labels = Object.keys(sums);
+        const data = labels.map(l=>sums[l]);
+        if(chart){
+          chart.data.labels = labels;
+          chart.data.datasets[0].data = data;
+          chart.update();
+        }else{
+          chart = new Chart(ctx,{
+            type:'doughnut',
+            data:{
+              labels: labels,
+              datasets:[{data:data, backgroundColor:["#6366f1","#10b981","#f59e0b","#ef4444","#06b6d4","#8b5cf6"], borderWidth:0}]
+            },
+            options:{
+              plugins:{legend:{position:'bottom'}},
+              maintainAspectRatio:true
+            }
+          });
+        }
+      }
+
+      function addExpense(description,amount,category){
+        const item = { id: Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8), description, amount: Number(amount), category, createdAt: new Date().toISOString() };
+        expenses.push(item);
+        save();
+        updateList();
+        updateChart();
+      }
+
+      function removeExpense(id){
+        const idx = expenses.findIndex(e=>e.id===id);
+        if(idx>-1){ expenses.splice(idx,1); save(); updateList(); updateChart(); }
+      }
+
+      form.addEventListener('submit', function(ev){
+        ev.preventDefault();
+        const desc = descEl.value.trim();
+        const amount = parseFloat(amountEl.value);
+        const category = categoryEl.value;
+        if(!desc || Number.isNaN(amount) || amount<=0){
+          alert('Please enter a valid description and positive amount.');
+          return;
+        }
+        addExpense(desc, amount, category);
+        form.reset();
+        descEl.focus();
+      });
+
+      clearBtn.addEventListener('click', function(){
+        if(!confirm('Clear all expenses? This cannot be undone.')) return;
+        expenses = []; save(); updateList(); updateChart();
+      });
+
+      // init
+      document.addEventListener('DOMContentLoaded', function(){
+        load();
+        updateList();
+        updateChart();
+      });
+
+      // expose for debugging
+      window.__expenseTracker = { load, save, addExpense, removeExpense };
+    })();
+  </script>
+</body>
+</html>
